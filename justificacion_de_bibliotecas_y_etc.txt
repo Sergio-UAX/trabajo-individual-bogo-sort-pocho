@@ -1,0 +1,61 @@
+===========================================================================
+               JUSTIFICACIÓN DE LIBRERÍAS UTILIZADAS
+===========================================================================
+
+A continuación se detalla el propósito y la justificación técnica de cada
+módulo importado en el proyecto "Bogo Sort Musical".
+
+---------------------------------------------------------------------------
+1. LIBRERÍA EXTERNA (Requiere instalación vía pip)
+---------------------------------------------------------------------------
+
+Librería: pygame
+----------------
+- ¿Por qué se usa?: 
+  Se utiliza específicamente el módulo `pygame.mixer` para gestionar la carga 
+  y reproducción de audio en segundo plano de forma asíncrona.
+
+- ¿Qué problema resuelve?: 
+  Python no posee una función nativa en su librería estándar para reproducir 
+  archivos de audio complejos (como MP3) de manera consistente en todos los 
+  sistemas operativos. `pygame` abstrae los controladores de audio del sistema.
+
+- Alternativa manual descartada: 
+  La alternativa sería usar llamadas al sistema mediante `os.system` (ej: abrir 
+  Windows Media Player o usar comandos de terminal). Se descartó porque hace 
+  que el programa pierda portabilidad (solo funcionaría en mi PC) y no permite 
+  controlar el volumen o detener la música suavemente (fadeout) desde el código.
+
+---------------------------------------------------------------------------
+2. LIBRERÍAS ESTÁNDAR (Incluidas por defecto en Python)
+---------------------------------------------------------------------------
+
+Librería: random
+----------------
+- Uso: 
+  Se emplea la función `random.shuffle()` para mezclar la lista de números.
+- Justificación: 
+  Es esencial para el algoritmo Bogo Sort, que se basa en el azar. Usar la 
+  librería estándar garantiza una generación de pseudo-aleatoriedad eficiente 
+  (Mersenne Twister) sin necesidad de programar manualmente generadores 
+  matemáticos complejos que podrían tener sesgos estadísticos.
+
+Librería: time
+--------------
+- Uso: 
+  Se utiliza `time.time()` para capturar marcas de tiempo (timestamps).
+- Justificación: 
+  Necesaria para cumplir el requisito de medir el rendimiento del algoritmo. 
+  Calculamos la duración restando el tiempo de inicio del tiempo final 
+  (`tiempo_fin - tiempo_inicio`), ofreciendo una métrica precisa de la 
+  ineficiencia del algoritmo Bogo Sort.
+
+Librería: os
+------------
+- Uso: 
+  Se utiliza `os.path.join()` y `os.path.exists()`.
+- Justificación: 
+  Garantiza la compatibilidad entre sistemas operativos (Windows, Linux, Mac). 
+  Windows usa barras invertidas (\) para las rutas y Linux barras normales (/). 
+  El módulo `os` construye la ruta al archivo de música automáticamente según 
+  el sistema donde se ejecute, evitando errores de "Archivo no encontrado".
