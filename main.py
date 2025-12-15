@@ -1,44 +1,61 @@
 import pygame
 import random
 import sys
+import os
+import time
+import subprocess 
 
-# --- Función para pedir datos al usuario ---
-def obtener_numero_barras():
-    """Pide al usuario el número de barras por la terminal."""
+try:
+    from audio.player import ReproductorMusica
+except ImportError:
+    print("\n[ERROR CRÍTICO] No se encuentra 'audio/player.py'.")
+    print("Asegúrate de que player.py esté dentro de la carpeta 'audio'.")
+    sys.exit()
+
+# configuracion antes de comenzar el bogogogo
+
+def preguntar_generar_sfx():
+    ruta_script = os.path.join("audio", "generador_sfx.py")
+    
+    if not os.path.exists(ruta_script):
+        if os.path.exists("generador_sfx.py"):
+            ruta_script = "generador_sfx.py"
+        else:
+            print(f"\n[AVISO] No se encontró el generador en '{ruta_script}'.")
+            return
+
+    print("\n--- CONFIGURACIÓN DE AUDIO ---")
+    while True:
+        resp = input("¿Quieres generar el efecto 'pop.wav'? (s/n): ").lower()
+        if resp == 's':
+            print("Ejecutando generador...")
+            try:
+                subprocess.run([sys.executable, ruta_script], check=True)
+            except Exception as e:
+                print(f"Error: {e}")
+            break
+        elif resp == 'n':
+            break
+
+def obtener_datos():
+    print("\n--- CONFIGURACIÓN DE BOGO SORT ---")
     while True:
         try:
-            entrada = input(">>> Introduce el número de barras a ordenar (ej: 50, 100, 200): ")
-            n = int(entrada)
-            if n > 1 and n <= 800: # Límite superior opcional para que se vea bien
-                return n
-            elif n > 800:
-                 print("¡Son demasiadas barras para el ancho de la pantalla! Intenta con menos de 800.")
-            else:
-                print("Por favor, introduce un número mayor a 1.")
+            n = int(input("Número de barras (ej: 10, 50): "))
+            if n > 1: break
+            print("Debe ser mayor a 1.")
         except ValueError:
-            print("Entrada no válida. Por favor, introduce un número entero.")
+            print("Número inválido.")
+            
+    print("\n--- MODO ---")
+    print("1. VISUAL (Gráficos y Audio)")
+    print("2. TERMINAL (Velocidad pura)")
+    while True:
+        m = input("Elige (1 o 2): ")
+        if m == "1": return n, "visual"
+        if m == "2": return n, "terminal"
 
-# --- Configuración Inicial ---
-# Pedimos el número ANTES de iniciar Pygame
-N = obtener_numero_barras()
-
-ANCHO_PANTALLA = 800
-ALTO_PANTALLA = 600
-
-# Colores (RGB)
-NEGRO = (0, 0, 0)
-BLANCO = (255, 255, 255)
-VERDE = (0, 255, 0)
-ROJO = (255, 0, 0)
-
-# Inicializar Pygame
-pygame.init()
-pantalla = pygame.display.set_mode((ANCHO_PANTALLA, ALTO_PANTALLA))
-pygame.display.set_caption(f"Bogo Sort Visualizer - {N} Elementos")
-reloj = pygame.time.Clock()
-fuente = pygame.font.SysFont('Arial', 20)
-
-# --- Funciones del Algoritmo ---
+# algoritmo bogo sort visual y terminal (los dos modos usan estas funciones)
 
 def generar_array(n):
     arr = list(range(1, n + 1))
@@ -47,119 +64,104 @@ def generar_array(n):
 
 def esta_ordenado(arr):
     for i in range(len(arr) - 1):
-        if arr[i] > arr[i+1]:
-            return False
+        if arr[i] > arr[i+1]: return False
     return True
 
-def paso_intercambio_aleatorio(arr):
-    if esta_ordenado(arr):
-        return arr, True, None, None
-    else:
-        n = len(arr)
-        i = random.randint(0, n - 1)
-        j = random.randint(0, n - 1)
-        while i == j and n > 1:
-             j = random.randint(0, n - 1)
-        
-        arr[i], arr[j] = arr[j], arr[i]
-        return arr, False, i, j
-
-# --- Funciones de Dibujado ---
-
-def dibujar_barras(arr, color_base, idx_rojo1=None, idx_rojo2=None):
-    pantalla.fill(NEGRO)
-
-    # Ancho dinámico según la cantidad de barras elegida por el usuario
-    ancho_barra = ANCHO_PANTALLA / len(arr)
-    escala_altura = ALTO_PANTALLA / len(arr)
-
-    for i, valor in enumerate(arr):
-        altura = valor * escala_altura
-        x = i * ancho_barra
-        y = ALTO_PANTALLA - altura
-        
-        color_actual = color_base
-        if idx_rojo1 is not None and (i == idx_rojo1 or i == idx_rojo2):
-            color_actual = ROJO
-
-        # Ajuste visual: si hay muchas barras, quitamos el espacio negro entre ellas
-        if ancho_barra > 3:
-            ancho_final = ancho_barra - 1
-        else:
-            ancho_final = ancho_barra # Sin espacio si son muy finas
-            
-        rect = pygame.Rect(x, y, max(1, ancho_final), altura)
-        pygame.draw.rect(pantalla, color_actual, rect)
-
-def dibujar_info(retraso, intentos):
-    # Fondo negro semitransparente para que se lea el texto
-    s = pygame.Surface((450, 60))
-    s.set_alpha(180)
-    s.fill(NEGRO)
-    pantalla.blit(s, (0,0))
-
-    texto_velocidad = fuente.render(f"Retraso: {retraso}ms (Flechas ARRIBA/ABAJO)", True, BLANCO)
-    texto_intentos = fuente.render(f"Intercambios: {intentos}", True, BLANCO)
-    pantalla.blit(texto_velocidad, (10, 10))
-    pantalla.blit(texto_intentos, (10, 35))
-
-# --- Bucle Principal ---
-
-def main():
-    array_actual = generar_array(N)
-    ordenando = True
-    intentos = 0
-    retraso_ms = 10 # Empezamos un poco más rápido por defecto
+def paso_intercambio(arr):
+    if esta_ordenado(arr): return arr, True, None, None
+    n = len(arr)
+    i, j = random.randint(0, n-1), random.randint(0, n-1)
+    while i == j and n > 1: j = random.randint(0, n-1)
+    arr[i], arr[j] = arr[j], arr[i]
+    return arr, False, i, j
+# los modos visual y terminal
+def modo_visual(N):
+    ANCHO, ALTO = 800, 600
+    pygame.init()
+    pantalla = pygame.display.set_mode((ANCHO, ALTO))
+    pygame.display.set_caption(f"Bogo Sort - {N} Elementos")
+    reloj = pygame.time.Clock()
+    fuente = pygame.font.SysFont('Arial', 20)
     
-    idx_swap1, idx_swap2 = None, None
+    # sfx
+    reproduc = ReproductorMusica()
+    
+    # Rutas para el efecto y la música de fondo
+    path_sfx = os.path.join(os.getcwd(), "audio", "pop.wav")
+    path_music = os.path.join(os.getcwd(), "audio", "cancion.mp3")
+    
+    reproduc.cargar_efecto(path_sfx)
+    reproduc.reproducir_musica(path_music)
+    
+    volumen_display = 30
+
+    def dibujar(arr, color, i1, i2):
+        pantalla.fill((0,0,0))
+        w = ANCHO / len(arr)
+        h_esc = ALTO / len(arr)
+        w_f = max(1, w - 1) if w > 3 else w
+        for i, val in enumerate(arr):
+            color_b = (255,0,0) if (i1 is not None and (i==i1 or i==i2)) else color
+            pygame.draw.rect(pantalla, color_b, (i*w, ALTO - val*h_esc, w_f, val*h_esc))
+
+    def info(ms, intentos, vol):
+        s = pygame.Surface((450, 90)); s.set_alpha(180); s.fill((0,0,0))
+        pantalla.blit(s, (0,0))
+        pantalla.blit(fuente.render(f"Velocidad: {ms}ms (UP/DOWN)", 1, (255,255,255)), (10,10))
+        pantalla.blit(fuente.render(f"Intentos: {intentos}", 1, (255,255,255)), (10,35))
+        pantalla.blit(fuente.render(f"Volumen: {vol}% (+/-)", 1, (255,255,255)), (10,60))
+
+    arr = generar_array(N)
+    ordenando, intentos, retraso = True, 0, 10
+    idx1, idx2 = None, None
 
     while True:
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            
-            if evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_UP:
-                    retraso_ms = max(0, retraso_ms - 5)
-                if evento.key == pygame.K_DOWN:
-                    retraso_ms += 5
-                if evento.key == pygame.K_r:
-                    # Al reiniciar, usamos el mismo N que eligió el usuario
-                    array_actual = generar_array(N)
-                    ordenando = True
-                    intentos = 0
-                    idx_swap1, idx_swap2 = None, None
+        for e in pygame.event.get():
+            if e.type == pygame.QUIT:
+                reproduc.detener_todo(); pygame.quit(); sys.exit()
+            if e.type == pygame.KEYDOWN:
+                if e.key == pygame.K_UP: retraso = max(0, retraso - 5)
+                if e.key == pygame.K_DOWN: retraso += 5
+                if e.key in [pygame.K_PLUS, pygame.K_KP_PLUS]: volumen_display = reproduc.modificar_volumen(0.1)
+                if e.key in [pygame.K_MINUS, pygame.K_KP_MINUS]: volumen_display = reproduc.modificar_volumen(-0.1)
+                if e.key == pygame.K_r: 
+                    arr = generar_array(N); ordenando = True; intentos = 0
 
-        color_base_dibujo = BLANCO
-        
         if ordenando:
-            array_actual, terminado, idx1, idx2 = paso_intercambio_aleatorio(array_actual)
-            idx_swap1, idx_swap2 = idx1, idx2
-            
-            if not terminado:
+            arr, fin, i1, i2 = paso_intercambio(arr)
+            idx1, idx2 = i1, i2
+            if not fin:
                 intentos += 1
+                reproduc.reproducir_efecto()
             else:
                 ordenando = False
-                print(f"¡Ordenado en {intentos} intercambios!")
+                print(f"¡Ordenado en {intentos}!")
         
-        if not ordenando:
-            color_base_dibujo = VERDE
-            idx_swap1, idx_swap2 = None, None
-
-        dibujar_barras(array_actual, color_base_dibujo, idx_swap1, idx_swap2)
-        dibujar_info(retraso_ms, intentos)
-        
-        if not ordenando:
-             texto_fin = fuente.render("¡ORDENADO! Presiona 'R' para reiniciar.", True, VERDE)
-             pantalla.blit(texto_fin, (ANCHO_PANTALLA//2 - 150, ALTO_PANTALLA//2))
-
+        dibujar(arr, (255,255,255) if ordenando else (0,255,0), idx1, idx2)
+        info(retraso, intentos, volumen_display)
         pygame.display.flip()
-        pygame.time.delay(retraso_ms)
-        reloj.tick(60) 
+        pygame.time.delay(retraso)
+        reloj.tick(60)
+
+def modo_terminal(N):
+    print(f"\n[TERMINAL] Ordenando {N} elementos...")
+    arr = generar_array(N)
+    intentos, inicio = 0, time.time()
+    try:
+        while not esta_ordenado(arr):
+            n = len(arr)
+            i, j = random.randint(0, n-1), random.randint(0, n-1)
+            arr[i], arr[j] = arr[j], arr[i]
+            intentos += 1
+            if intentos % 100000 == 0: print(f"Intentos: {intentos}...")
+    except KeyboardInterrupt:
+        sys.exit()
+    print(f"¡Listo! {intentos} intentos en {time.time()-inicio:.2f}s")
+    input("Enter para salir...")
 
 if __name__ == "__main__":
-    main()
+    preguntar_generar_sfx()
+    n, modo = obtener_datos()
+    modo_visual(n) if modo == "visual" else modo_terminal(n)
 
-
-#arr pirata
+#arr pirateta-tento a navegantes

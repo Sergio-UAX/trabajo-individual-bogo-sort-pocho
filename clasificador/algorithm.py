@@ -2,18 +2,15 @@ from .helpers import esta_ordenado, mezclar_lista
 import time
 
 def bogo_sort(lista):
-    """
-    Algoritmo principal.
-    Demuestra: Uso de bucle 'while' para control de flujo.
-    """
+    #Algoritmo principal. Realiza el ordenamiento de la lista utilizando el método Bogo Sort (el mejor de todos de lejos).
     intentos = 0
     
-    # BUCLE: Mientras la lista NO esté ordenada, seguimos mezclando
+    #Mientras que la lista no esté ordenada, sigue mezclándola
     while not esta_ordenado(lista):
         mezclar_lista(lista)
         intentos += 1
         
-        # Opcional: Imprimir estado cada 50 intentos para no saturar la consola
+        # Imprimir estado cada 50 intentos para no saturar la consola (tips de la ia)
         if intentos % 50 == 0:
             print(f"Intento {intentos}: {lista}")
             
