@@ -165,3 +165,5 @@ if __name__ == "__main__":
     modo_visual(n) if modo == "visual" else modo_terminal(n)
 
 #arr pirateta-tento a navegantes
+
+""" Este es el link de github: https://github.com/Sergio-UAX/trabajo-individual-bogo-sort-pocho """
